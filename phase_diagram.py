@@ -30,6 +30,11 @@ for rat in np.arange(100)*0.01*(G2-G1) + G1:
 	x1 = np.arange(199)*0.005+0.005
 	fmin = np.array([min(FE.f_liquid(gamma1,x,RZ),FE.f_solid(gamma1,x,RZ)) for x in x1])
 
+	# calculate the derivative dfdx
+	eps = 0.0001
+	f2 = np.array([min(FE.f_liquid(gamma1,x,RZ),FE.f_solid(gamma1,x,RZ)) for x in (x1+eps)])
+	dfdx = (f2-fmin)/eps
+
 	# we loop through different composition values, find the tangent line at each
 	# point, and then test how many times the tangent line intersects the Fmin curve
 	# When that number drops to zero or increases suddenly from zero, we have 
@@ -37,14 +42,9 @@ for rat in np.arange(100)*0.01*(G2-G1) + G1:
 
 	lastcount = -1
 
-	for thisx in x1:
-		# calculate the derivative dfdx
-		eps = 0.001
-		f1 = min(FE.f_liquid(gamma1,thisx,RZ),FE.f_solid(gamma1,thisx,RZ))
-		f2 = min(FE.f_liquid(gamma1,thisx+eps,RZ),FE.f_solid(gamma1,thisx+eps,RZ))
-		dfdx = (f2-f1)/eps
+	for this_x,this_fmin,this_dfdx in zip(x1,fmin,dfdx):
 		# tangent line
-		flin = np.array([f1 + dfdx*(x-thisx) for x in x1])
+		flin = this_fmin + this_dfdx*(x1-this_x)
 		# calculate number of intersections
 		fdiff = fmin-flin
 		count = (fdiff<0.0).sum()
@@ -52,10 +52,10 @@ for rat in np.arange(100)*0.01*(G2-G1) + G1:
 		if lastcount>=0:
 			if (lastcount ==0 and count >0) or (lastcount>0 and count ==0):
 				# we've found a tangent point, so store the data point
-				x_points = np.append(x_points,1.0-thisx)
+				x_points = np.append(x_points,1.0-this_x)
 				gamma_points = np.append(gamma_points,rat)
 				# make a note of whether it is liquid or solid				
-				if FE.f_liquid(gamma1,thisx,RZ)<FE.f_solid(gamma1,thisx,RZ):
+				if FE.f_liquid(gamma1,this_x,RZ)<FE.f_solid(gamma1,this_x,RZ):
 					point_type = np.append(point_type,-1)
 				else:
 					point_type = np.append(point_type,1)
