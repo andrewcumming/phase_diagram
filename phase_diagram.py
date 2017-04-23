@@ -15,19 +15,23 @@ Z1,Z2,G1,G2 = 3,13,0.2,12.0
 # charge ratio
 RZ = 1.0*Z2/Z1
 
+# number of steps in x and gamma
+xsteps = 200
+gsteps = 100
+
 # arrays to store the tangent points
 x_points = np.array([])
 gamma_points = np.array([])
 point_type = np.array([])
 
 # scan through the range of gamma values
-for rat in np.arange(100)*0.01*(G2-G1) + G1:
+for rat in np.arange(gsteps+1)*(G2-G1)/gsteps + G1:
 
 	# set gamma
 	gamma1 = FE.gamma_crit/rat
 
 	# calculate the minimum free energy as a function of x
-	x1 = np.arange(199)*0.005+0.005
+	x1 = np.arange(xsteps-1)/xsteps+1.0/xsteps
 	fmin = np.array([min(FE.f_liquid(gamma1,x,RZ),FE.f_solid(gamma1,x,RZ)) for x in x1])
 
 	# calculate the derivative dfdx
@@ -67,6 +71,9 @@ for rat in np.arange(100)*0.01*(G2-G1) + G1:
 # plot phase diagram
 plt.scatter(x_points[point_type>0],gamma_points[point_type>0],s=4)
 plt.scatter(x_points[point_type<0],gamma_points[point_type<0],s=4)
+# plot <Z^5/3> gamma_crit
+x2 = np.arange(199)*0.005+0.005
+plt.plot(x2, ((1.0-x2) + RZ**(5.0/3.0)*x2),'k--',alpha=0.2)
 plt.xlim((0.0,1.0))
 plt.xlabel(r'$x_2$')
 plt.ylabel(r'$\Gamma_{\rm crit}/\Gamma_1$')

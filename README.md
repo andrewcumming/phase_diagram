@@ -2,7 +2,7 @@ Calculates the phase diagram for two component plasmas following [Medin & Cummin
 
 `free_energy.py` computes the free energy of liquid and solid phases (see section II of the paper for a description and references to the different free energy fits).
 
-`phase_diagram.py` computes the phase diagram by searching for tangent points at different Gamma's. Red points indicate liquid / blue points solid. Here is an example for an O/Se mixture (compare Medin & Cumming 2010 Fig. 5b):
+`phase_diagram.py` computes the phase diagram by searching for tangent points at different Gamma's. Here are examples for different charge ratios (red points indicate liquid / blue points solid):
 
-![Example of O/Se mixture](phase_diagram_34_8.png)
+![Examples for different charge ratios](phase_diagram.png)
 
