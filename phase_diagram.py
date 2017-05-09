@@ -2,31 +2,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 import free_energy as FE
 from scipy.optimize import fsolve
+import time
+from concurrent import futures
 
-# We need to specify the charges of the two species (note: the charge ratio is what matters)
-# and the range of gamma to search over:
-#Z1,Z2,G1,G2 = 26,34,0.9,1.7
-#Z1,Z2,G1,G2 = 8,34,0.7,12.0
-#Z1,Z2,G1,G2 = 3,4,0.9,1.7
-#Z1,Z2,G1,G2 = 2,3,0.8,2.0
-#Z1,Z2,G1,G2 = 3,5,0.7,2.4
-Z1,Z2,G1,G2 = 3,13,0.2,12.0
+def do_gam(rat):
+	return list(tangent_points(rat))
 
-# charge ratio
-RZ = 1.0*Z2/Z1
-
-# number of steps in x and gamma
-xsteps = 200
-gsteps = 100
-
-# arrays to store the tangent points
-x_points = np.array([])
-gamma_points = np.array([])
-point_type = np.array([])
-
-# scan through the range of gamma values
-for rat in np.arange(gsteps+1)*(G2-G1)/gsteps + G1:
-
+def tangent_points(rat):
 	# set gamma
 	gamma1 = FE.gamma_crit/rat
 
@@ -43,9 +25,7 @@ for rat in np.arange(gsteps+1)*(G2-G1)/gsteps + G1:
 	# point, and then test how many times the tangent line intersects the Fmin curve
 	# When that number drops to zero or increases suddenly from zero, we have 
 	# a tangent point
-
 	lastcount = -1
-
 	for this_x,this_fmin,this_dfdx in zip(x1,fmin,dfdx):
 		# tangent line
 		flin = this_fmin + this_dfdx*(x1-this_x)
@@ -55,18 +35,43 @@ for rat in np.arange(gsteps+1)*(G2-G1)/gsteps + G1:
 		# did this change to or from zero? 
 		if lastcount>=0:
 			if (lastcount ==0 and count >0) or (lastcount>0 and count ==0):
-				# we've found a tangent point, so store the data point
-				x_points = np.append(x_points,1.0-this_x)
-				gamma_points = np.append(gamma_points,rat)
-				# make a note of whether it is liquid or solid				
+				# we've found a tangent point
 				if FE.f_liquid(gamma1,this_x,RZ)<FE.f_solid(gamma1,this_x,RZ):
-					point_type = np.append(point_type,-1)
+					point_type = -1
 				else:
-					point_type = np.append(point_type,1)
-				#plt.plot(x1,flin)
-				##plt.plot(x1,fdiff)
-				#plt.show()
+					point_type = 1
+				yield (1.0-this_x,rat,point_type)				
 		lastcount = count
+
+t0 = time.time()
+
+# We need to specify the charges of the two species (note: the charge ratio is what matters)
+# and the range of gamma to search over:
+#Z1,Z2,G1,G2 = 26,34,0.9,1.7
+#Z1,Z2,G1,G2 = 8,34,0.7,12.0
+#Z1,Z2,G1,G2 = 3,4,0.9,1.7
+#Z1,Z2,G1,G2 = 2,3,0.8,2.0
+Z1,Z2,G1,G2 = 3,5,0.7,2.4
+#Z1,Z2,G1,G2 = 3,13,0.2,12.0
+
+# charge ratio
+RZ = 1.0*Z2/Z1
+
+# number of steps in x and gamma
+xsteps = 1000
+gsteps = 1000
+
+# scan through gamma and find the tangent points
+rat_vec = np.arange(gsteps+1)*(G2-G1)/gsteps + G1
+with futures.ProcessPoolExecutor() as executor:
+	results = executor.map(do_gam, rat_vec)
+results = np.array([x for res in results for x in res])
+x_points = results[:,0]
+gamma_points = results[:,1]
+point_type = results[:,2]
+
+# check the execution time
+print("Time taken=",time.time()-t0)
 
 # plot phase diagram
 plt.scatter(x_points[point_type>0],gamma_points[point_type>0],s=4)
